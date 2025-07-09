@@ -1,4 +1,5 @@
 📘 Overview
+
 ArduinoInertialTracker is a simple yet functional inertial navigation system that leverages sensor fusion algorithms (Mahony/Madgwick) to estimate orientation and position using data from an MPU6050 IMU. The project is developed on an Arduino Uno R4 WiFi and uses a GY-87 sensor module, which includes the MPU6050 and additional sensors.
 
   ⚠️ This is a learning-oriented project. The tracking may suffer from drift and inaccuracy over time due to sensor limitations and integration errors, but it's a great entry point to understand IMU data processing, sensor fusion, and inertial navigation concepts.
@@ -14,6 +15,7 @@ Arduino Uno R4 WiFi (or compatible board)
 
 
 🚀 Features
+
 Sensor fusion using Mahony or Madgwick filters
 
 - Accelerometer and gyroscope calibration
@@ -26,8 +28,10 @@ Sensor fusion using Mahony or Madgwick filters
 
 
 🤝 Contributions
+
 Pull requests are welcome! If you’ve made improvements or want to experiment with new filters or visualization methods, feel free to fork and submit a PR.
 
 
 📜 License
+
 MIT License – free to use, modify, and distribute.
