@@ -7,8 +7,7 @@ ArduinoInertialTracker is a simple yet functional inertial navigation system tha
 🛠 Hardware Used
 Arduino Uno R4 WiFi (or compatible board)
 
-- GY-87 Sensor Module
-- MPU6050 (Accelerometer + Gyroscope)
+- GY-87 Sensor Module (MPU6050 Accelerometer & Gyroscope + QMC5883L Magnetometer)
 - Breadboard and jumper wires
 - USB cable
 - (Optional) Battery/power supply for mobile testing
