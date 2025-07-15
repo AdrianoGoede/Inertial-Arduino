@@ -1,9 +1,13 @@
 #include "Inertial.h"
+#include <ArduinoJson.h>
 
 bool InertialPositionTracker::initialize() {
   if (!this->initializeMPU()) return false;
   this->calibrateMPU();
   this->filter.begin(FILTER_SAMPLING_RATE);
+  
+  this->initializeMagnetometer();
+
   return true;
 }
 
@@ -39,9 +43,11 @@ float InertialPositionTracker::getPositionZ() { return this->pos_z; }
 
 bool InertialPositionTracker::initializeMPU() {
   if (!this->mpu.begin()) return false;
-  this->mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  this->mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  this->mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
+  this->mpu.setGyroRange(MPU6050_RANGE_250_DEG);
   this->mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  this->mpu.setI2CBypass(true);
+  delay(100);
   return true;
 }
 
@@ -56,7 +62,7 @@ void InertialPositionTracker::calibrateMPU() {
     gx += (double)this->gyro_x;
     gy += (double)this->gyro_y;
     gz += (double)this->gyro_z;
-    delay((int)FILTER_SAMPLING_RATE);
+    delay(10);
   }
 
   this->accel_x_bias = (float)(ax / MPU_CALIBRATION_SAMPLES);
@@ -67,9 +73,18 @@ void InertialPositionTracker::calibrateMPU() {
   this->gyro_z_bias = (float)(gz / MPU_CALIBRATION_SAMPLES);
 }
 
+void InertialPositionTracker::initializeMagnetometer() {
+  this->magnetometer.init();
+}
+
 void InertialPositionTracker::updateState(float delta_time) {
   this->getMpuReading();
-  this->filter.updateIMU(this->gyro_x, this->gyro_y, this->gyro_z, this->accel_x, this->accel_y, this->accel_z);
+  this->getMagnetometerReading();
+  this->filter.update(
+    this->gyro_x, this->gyro_y, this->gyro_z,
+    this->accel_x, this->accel_y, this->accel_z,
+    this->mag_x, this->mag_y, this->mag_z
+  );
 
   float sin_roll  = sin(this->filter.getRoll()),  cos_roll  = cos(this->filter.getRoll());
   float sin_pitch = sin(this->filter.getPitch()), cos_pitch = cos(this->filter.getPitch());
@@ -94,13 +109,13 @@ void InertialPositionTracker::updateState(float delta_time) {
   this->accel_y_filtered = (ACCELEROMETER_FILTER_ALPHA * this->accel_y_filtered + (1.0 - ACCELEROMETER_FILTER_ALPHA) * ay_world);
   this->accel_z_filtered = (ACCELEROMETER_FILTER_ALPHA * this->accel_z_filtered + (1.0 - ACCELEROMETER_FILTER_ALPHA) * az_world);
 
-  this->vel_x += (this->accel_x_filtered * 9.81 * delta_time);
+  this->vel_x += (this->accel_x_filtered * delta_time);
   this->pos_x += (this->vel_x * delta_time);
 
-  this->vel_y += (this->accel_y_filtered * 9.81 * delta_time);
+  this->vel_y += (this->accel_y_filtered * delta_time);
   this->pos_y += (this->vel_y * delta_time);
 
-  this->vel_z += (this->accel_z_filtered * 9.81 * delta_time);
+  this->vel_z += (this->accel_z_filtered * delta_time);
   this->pos_z += (this->vel_z * delta_time);
 }
 
@@ -109,11 +124,8 @@ void InertialPositionTracker::getMpuReading() {
   mpu.getEvent(&accelerator, &gyroscope, nullptr);
 
   this->accel_x = (accelerator.acceleration.x - this->accel_x_bias);
-  this->accel_x = (abs(this->accel_x) >= ZUPT_THRESHOLD ? this->accel_x : 0.0);
   this->accel_y = (accelerator.acceleration.y - this->accel_y_bias);
-  this->accel_y = (abs(this->accel_y) >= ZUPT_THRESHOLD ? this->accel_y : 0.0);
   this->accel_z = (accelerator.acceleration.z - this->accel_z_bias);
-  this->accel_z = (abs(this->accel_z) >= ZUPT_THRESHOLD ? this->accel_z : 0.0);
 
   this->gyro_x = (gyroscope.gyro.x - this->gyro_x_bias);
   this->gyro_x = (abs(this->gyro_x) >= ZUPT_THRESHOLD ? this->gyro_x : 0.0);
@@ -121,4 +133,24 @@ void InertialPositionTracker::getMpuReading() {
   this->gyro_y = (abs(this->gyro_y) >= ZUPT_THRESHOLD ? this->gyro_y : 0.0);
   this->gyro_z = (gyroscope.gyro.z - this->gyro_z_bias);
   this->gyro_z = (abs(this->gyro_z) >= ZUPT_THRESHOLD ? this->gyro_z : 0.0);
+}
+
+void InertialPositionTracker::getMagnetometerReading() {
+  this->magnetometer.read();
+  this->mag_x = (float)this->magnetometer.getX();
+  this->mag_y = (float)this->magnetometer.getY();
+  this->mag_z = (float)this->magnetometer.getZ();
+}
+
+String InertialPositionTracker::getStateJson() {
+  String result;
+  JsonDocument document;
+  document["Velocity"]["X"] = this->getVelocityX();
+  document["Velocity"]["Y"] = this->getVelocityY();
+  document["Velocity"]["Z"] = this->getVelocityZ();
+  document["Position"]["X"] = this->getPositionX();
+  document["Position"]["Y"] = this->getPositionY();
+  document["Position"]["Z"] = this->getPositionZ();
+  serializeJson(document, result);
+  return result;
 }
