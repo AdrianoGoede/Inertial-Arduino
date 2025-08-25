@@ -93,29 +93,27 @@ void InertialPositionTracker::updateState(float delta_time) {
   float ax_world = this->accel_x * (cos_yaw * cos_pitch) +
                    this->accel_y * (cos_yaw * sin_pitch * sin_roll - sin_yaw * cos_roll) +
                    this->accel_z * (cos_yaw * sin_pitch * cos_roll + sin_yaw * sin_roll);
-  ax_world = (abs(ax_world) >= ZUPT_THRESHOLD ? ax_world : 0.0);
 
   float ay_world = this->accel_x * (sin_yaw * cos_pitch) +
                    this->accel_y * (sin_yaw * sin_pitch * sin_roll + cos_yaw * cos_roll) +
                    this->accel_z * (sin_yaw * sin_pitch * cos_roll - cos_yaw * sin_roll);
-  ay_world = (abs(ay_world) >= ZUPT_THRESHOLD ? ay_world : 0.0);
 
   float az_world = this->accel_x * (-sin_pitch) +
                    this->accel_y * (cos_pitch * sin_roll) +
                    this->accel_z * (cos_pitch * cos_roll);
-  az_world = (abs(az_world) >= ZUPT_THRESHOLD ? az_world : 0.0);
 
-  this->accel_x_filtered = (ACCELEROMETER_FILTER_ALPHA * this->accel_x_filtered + (1.0 - ACCELEROMETER_FILTER_ALPHA) * ax_world);
-  this->accel_y_filtered = (ACCELEROMETER_FILTER_ALPHA * this->accel_y_filtered + (1.0 - ACCELEROMETER_FILTER_ALPHA) * ay_world);
-  this->accel_z_filtered = (ACCELEROMETER_FILTER_ALPHA * this->accel_z_filtered + (1.0 - ACCELEROMETER_FILTER_ALPHA) * az_world);
+  float total_accel_magnitude = sqrt(
+    ax_world * ax_world +
+    ay_world * ay_world +
+    az_world * az_world
+  );
 
-  this->vel_x += (this->accel_x_filtered * delta_time);
+  this->vel_x = ((total_accel_magnitude >= STATIONARY_THRESHOLD) ? (this->vel_x + ax_world * delta_time) : 0);
+  this->vel_y = ((total_accel_magnitude >= STATIONARY_THRESHOLD) ? (this->vel_y + ay_world * delta_time) : 0);
+  this->vel_z = ((total_accel_magnitude >= STATIONARY_THRESHOLD) ? (this->vel_z + az_world * delta_time) : 0);
+
   this->pos_x += (this->vel_x * delta_time);
-
-  this->vel_y += (this->accel_y_filtered * delta_time);
   this->pos_y += (this->vel_y * delta_time);
-
-  this->vel_z += (this->accel_z_filtered * delta_time);
   this->pos_z += (this->vel_z * delta_time);
 }
 
@@ -128,11 +126,8 @@ void InertialPositionTracker::getMpuReading() {
   this->accel_z = (accelerator.acceleration.z - this->accel_z_bias);
 
   this->gyro_x = (gyroscope.gyro.x - this->gyro_x_bias);
-  this->gyro_x = (abs(this->gyro_x) >= ZUPT_THRESHOLD ? this->gyro_x : 0.0);
   this->gyro_y = (gyroscope.gyro.y - this->gyro_y_bias);
-  this->gyro_y = (abs(this->gyro_y) >= ZUPT_THRESHOLD ? this->gyro_y : 0.0);
   this->gyro_z = (gyroscope.gyro.z - this->gyro_z_bias);
-  this->gyro_z = (abs(this->gyro_z) >= ZUPT_THRESHOLD ? this->gyro_z : 0.0);
 }
 
 void InertialPositionTracker::getMagnetometerReading() {

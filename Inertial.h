@@ -14,7 +14,7 @@ private:
   float pos_x = 0, pos_y = 0, pos_z = 0;
   float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, mag_x, mag_y, mag_z;
   float accel_x_filtered = 0, accel_y_filtered = 0, accel_z_filtered = 0;
-  float accel_x_bias, accel_y_bias, accel_z_bias, gyro_x_bias, gyro_y_bias, gyro_z_bias;
+  float accel_x_bias = 0, accel_y_bias = 0, accel_z_bias = 0, gyro_x_bias = 0, gyro_y_bias = 0, gyro_z_bias = 0;
   bool initializeMPU();
   void initializeMagnetometer();
   void calibrateMPU();
