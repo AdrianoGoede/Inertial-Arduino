@@ -1,5 +1,4 @@
 #include "Inertial.h"
-#include <ArduinoJson.h>
 
 bool InertialPositionTracker::initialize() {
   if (!this->initializeMPU()) return false;
@@ -10,36 +9,6 @@ bool InertialPositionTracker::initialize() {
 
   return true;
 }
-
-float InertialPositionTracker::getAccelerometerX() { return this->accel_x; }
-
-float InertialPositionTracker::getAccelerometerY() { return this->accel_y; }
-
-float InertialPositionTracker::getAccelerometerZ() { return this->accel_z; }
-
-float InertialPositionTracker::getGyroscopeX() { return this->gyro_x; }
-
-float InertialPositionTracker::getGyroscopeY() { return this->gyro_y; }
-
-float InertialPositionTracker::getGyroscopeZ() { return this->gyro_z; }
-
-float InertialPositionTracker::getRoll() { return this->filter.getRoll(); }
-
-float InertialPositionTracker::getPitch() { return this->filter.getPitch(); }
-
-float InertialPositionTracker::getYaw() { return this->filter.getYaw(); }
-
-float InertialPositionTracker::getVelocityX() { return this->vel_x; }
-
-float InertialPositionTracker::getVelocityY() { return this->vel_y; }
-
-float InertialPositionTracker::getVelocityZ() { return this->vel_z; }
-
-float InertialPositionTracker::getPositionX() { return this->pos_x; }
-
-float InertialPositionTracker::getPositionY() { return this->pos_y; }
-
-float InertialPositionTracker::getPositionZ() { return this->pos_z; }
 
 bool InertialPositionTracker::initializeMPU() {
   if (!this->mpu.begin()) return false;
@@ -137,15 +106,13 @@ void InertialPositionTracker::getMagnetometerReading() {
   this->mag_z = (float)this->magnetometer.getZ();
 }
 
-String InertialPositionTracker::getStateJson() {
-  String result;
-  JsonDocument document;
-  document["Velocity"]["X"] = this->getVelocityX();
-  document["Velocity"]["Y"] = this->getVelocityY();
-  document["Velocity"]["Z"] = this->getVelocityZ();
-  document["Position"]["X"] = this->getPositionX();
-  document["Position"]["Y"] = this->getPositionY();
-  document["Position"]["Z"] = this->getPositionZ();
-  serializeJson(document, result);
-  return result;
+inertial_tracker_state_t InertialPositionTracker::getCurrentState() {
+  return inertial_tracker_state_t {
+    this->accel_x, this->accel_y, this->accel_z,
+    this->gyro_x, this->gyro_y, this->gyro_z,
+    this->mag_x, this->mag_y, this->mag_z,
+    this->filter.getRoll(), this->filter.getPitch(), this->filter.getYaw(),
+    this->vel_x, this->vel_y, this->vel_z,
+    this->pos_x, this->pos_y, this->pos_z
+  };
 }

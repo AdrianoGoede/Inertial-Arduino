@@ -1,9 +1,19 @@
 #ifndef __INERTIAL__
 #define __INERTIAL__
-#include "settings.h"
+
 #include <Adafruit_MPU6050.h>
 #include <QMC5883LCompass.h>
 #include <MadgwickAHRS.h>
+#include "settings.h"
+
+typedef struct inertial_tracker_state {
+  float accel_x, accel_y, accel_z;
+  float gyro_x, gyro_y, gyro_z;
+  float mag_x, mag_y, mag_z;
+  float roll, pitch, yaw;
+  float vel_x, vel_y, vel_z;
+  float pos_x, pos_y, pos_z;
+} inertial_tracker_state_t;
 
 class InertialPositionTracker {
 private:
@@ -24,22 +34,7 @@ private:
 public:
   bool initialize();
   void updateState(float delta_time);
-  String getStateJson();
-  float getAccelerometerX();
-  float getAccelerometerY();
-  float getAccelerometerZ();
-  float getGyroscopeX();
-  float getGyroscopeY();
-  float getGyroscopeZ();
-  float getRoll();
-  float getPitch();
-  float getYaw();
-  float getVelocityX();
-  float getVelocityY();
-  float getVelocityZ();
-  float getPositionX();
-  float getPositionY();
-  float getPositionZ();
+  inertial_tracker_state_t getCurrentState();
 };
 
 #endif

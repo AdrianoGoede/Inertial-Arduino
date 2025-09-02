@@ -1,7 +1,8 @@
 #include <Arduino_FreeRTOS.h>
 #include "Inertial.h"
+#include "Communication.h"
 
-InertialPositionTracker positionTracker;
+InertialPositionTracker* positionTracker;
 SemaphoreHandle_t semaphore;
 
 void intertialTask(void* pvParameters) {
@@ -12,37 +13,21 @@ void intertialTask(void* pvParameters) {
     now = millis();
     dt = ((now - last_update) / 1000.0);
     
-    if (dt < (1.0 / FILTER_SAMPLING_RATE) || xSemaphoreTake(semaphore, portMAX_DELAY) != pdTRUE) {
+    if (dt < (1.0 / FILTER_SAMPLING_RATE) || xSemaphoreTake(semaphore, pdMS_TO_TICKS(10)) != pdTRUE) {
       vTaskDelay(pdMS_TO_TICKS(1));
       continue;
     }
     
-    positionTracker.updateState(dt);
+    positionTracker->updateState(dt);
     xSemaphoreGive(semaphore);
     last_update = now;
   }
 }
 
-// For test only!
-void printingTask(void* pvParameters) {
-  char strBuffer[100];
-  
+void communicationTask(void* pvParameters) {
   while (true) {
-    if (xSemaphoreTake(semaphore, portMAX_DELAY) != pdTRUE)
-      continue;
-
-    snprintf(
-      strBuffer,
-      100,
-      "%.5f,%.5f,%.5f",
-      positionTracker.getPositionX(),
-      positionTracker.getPositionY(),
-      positionTracker.getPositionZ()
-    );
-    Serial.println(strBuffer);
-
-    xSemaphoreGive(semaphore);
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    CommServer::runServer();
+    vTaskDelay(pdMS_TO_TICKS(1)); 
   }
 }
 
@@ -51,18 +36,24 @@ void setup() {
   while (!Serial) delay(200);
 
   semaphore = xSemaphoreCreateBinary();
-  if (semaphore == nullptr) {
-    Serial.println("Error creating Mutex");
+  if (!semaphore) {
+    Serial.println("Could not create semaphore, aborting...");
     while (true);
   }
   xSemaphoreGive(semaphore);
   Serial.println("Semaphore initialized");
 
-  while (!positionTracker.initialize()) {
-    Serial.println("Error initializing position semaphore");
+  positionTracker = new InertialPositionTracker();
+  if (!positionTracker->initialize()) {
+    Serial.println("Could not initialize inertial position tracker, aborting...");
     while (true);
   }
-  Serial.println("Tracker initialized");
+  Serial.println("Inertial position tracker initialized");
+
+  if (!CommServer::initialize(positionTracker, semaphore)) {
+    Serial.println("Could not initialize communication interface, aborting...");
+    while (true);
+  }
 
   xTaskCreate(
     intertialTask,
@@ -73,17 +64,16 @@ void setup() {
     nullptr
   );
 
-  // For test only!
   xTaskCreate(
-    printingTask,
-    "Test task",
-    256,
+    communicationTask,
+    "Communication task",
+    COMMUNICATION_TASK_STACK_SIZE,
     nullptr,
-    1,
+    COMMUNICATION_TASK_PRIORITY,
     nullptr
   );
 
-  Serial.println("Starting...");
+  Serial.println("All set! Starting...\n");
   vTaskStartScheduler();
 }
 
