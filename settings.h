@@ -1,7 +1,15 @@
 #define SERIAL_BAUD_RATE                  115200
 #define FILTER_SAMPLING_RATE              100.0
-#define MPU_CALIBRATION_SAMPLES           50
-#define STATIONARY_THRESHOLD              0.1f
+#define MPU_CALIBRATION_SAMPLES           300
+
+#define STATE_COVARIANCE_SIZE             16
+#define NOISE_MATRIX_SIZE                 3
+#define INITIAL_STATE_VECTOR              0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+#define COVARIANCE_INITIAL_VALUE          100.0
+#define PROCESS_NOISE_INITIAL_VALUE       1.0
+#define MEASUREMENT_NOISE_INITIAL_VALUE   0.1
+#define MINIMUM_MAGNITUDE_THRESHOLD       1e-6
+#define GRAVITY_ACCELERATION              9.81
 
 #define INERTIAL_TRACKING_TASK_STACK_SIZE 512
 #define INERTIAL_TRACKING_TASK_PRIORITY   3

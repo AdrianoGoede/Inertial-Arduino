@@ -83,7 +83,7 @@ void CommServer::runServer() {
   if ((current_timestamp - last_timestamp) < MQTT_PUBLISH_INTERVAL) return;
   last_timestamp = current_timestamp;
 
-  if (!xSemaphoreTake(CommServer::semaphore, pdMS_TO_TICKS(10))) return;
+  if (xSemaphoreTake(CommServer::semaphore, pdMS_TO_TICKS(10)) != pdTRUE) return;
   inertial_tracker_state_t current_state = CommServer::positionTracker->getCurrentState();
   xSemaphoreGive(CommServer::semaphore);
   

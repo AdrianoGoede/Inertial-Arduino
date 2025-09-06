@@ -3,7 +3,7 @@
 
 #include <Adafruit_MPU6050.h>
 #include <QMC5883LCompass.h>
-#include <MadgwickAHRS.h>
+#include <MatrixMath.h>
 #include "settings.h"
 
 typedef struct inertial_tracker_state {
@@ -19,18 +19,21 @@ class InertialPositionTracker {
 private:
   Adafruit_MPU6050 mpu;
   QMC5883LCompass magnetometer;
-  Madgwick filter;
-  float vel_x = 0, vel_y = 0, vel_z = 0;
-  float pos_x = 0, pos_y = 0, pos_z = 0;
-  float accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z, mag_x, mag_y, mag_z;
-  float accel_x_filtered = 0, accel_y_filtered = 0, accel_z_filtered = 0;
-  float accel_x_bias = 0, accel_y_bias = 0, accel_z_bias = 0, gyro_x_bias = 0, gyro_y_bias = 0, gyro_z_bias = 0;
+  mtx_type state_vector[STATE_COVARIANCE_SIZE]{ INITIAL_STATE_VECTOR };
+  mtx_type covariance_matrix[STATE_COVARIANCE_SIZE][STATE_COVARIANCE_SIZE];
+  mtx_type process_noise_matrix[STATE_COVARIANCE_SIZE][STATE_COVARIANCE_SIZE];
+  mtx_type measurement_noise_matrix[NOISE_MATRIX_SIZE][NOISE_MATRIX_SIZE];
   bool initializeMPU();
   void initializeMagnetometer();
   void calibrateMPU();
-  void getMpuReading();
-  void getMagnetometerReading();
-
+  void getMpuReading(mtx_type* accel_x, mtx_type* accel_y, mtx_type* accel_z, mtx_type* gyro_x, mtx_type* gyro_y, mtx_type* gyro_z);
+  void getMagnetometerReading(mtx_type* mag_x, mtx_type* mag_y, mtx_type* mag_z);
+  void predictState(float delta_time, const mtx_type accelerometer[3], const mtx_type gyroscope[3]);
+  void updateState(float delta_time, const mtx_type accelerometer[3], const mtx_type gyroscope[3]);
+  void quaternionFromAngularVelocity(float delta_time, const mtx_type gyroscope[3], mtx_type quaternion[4]);
+  void quaternionMultiply(const mtx_type first[4], const mtx_type second[4], mtx_type output[4]);
+  void rotateVector(const mtx_type vector[3], const mtx_type quaternion[4], mtx_type output[3]);
+  void normalizeQuaternion(mtx_type quaternion[4]);
 public:
   bool initialize();
   void updateState(float delta_time);

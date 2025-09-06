@@ -1,3 +1,4 @@
+#include "WiFiSSLClient.h"
 #include <sys/_stdint.h>
 #ifndef __COMMUNICATION__
 #define __COMMUNICATION__
